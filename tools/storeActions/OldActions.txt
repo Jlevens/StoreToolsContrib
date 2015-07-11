@@ -1,0 +1,207 @@
+# See how a real topic (WorkFlow.txt hence WF) is returned. Topic created as a text file directly to force unusual situations
+sub showTopic {
+    my ($session, $storeName, $store, $a) = @_;
+    
+    my $query = $session->{request};
+    my $w = $a{topic};
+
+    my $text = '';
+   
+    my $oText = Foswiki::Func::readFile("$Foswiki::cfg{DataDir}/$w/$t.txt");
+    my $rText = Foswiki::Func::readTopicText($w, $t);
+    my ($meta, $topicText) = Foswiki::Func::readTopic( $w, $t );
+
+    $text .= "\n\n== $t" . "=" x 120 . "\n";
+    $text .= "--------------------------------------------\n";
+    $meta->{_text} = "*Text was 'ere*";
+    $text .= $meta->getEmbeddedStoreForm();
+    $text .= "--------------------------------------------\n";
+    $text .= $topicText;
+    $text .= "--------------------------------------------\n";
+    $text .= "--------------------------------------------\n";
+    $text .= $rText;
+    $text .= "\n--------------------------------------------\n";
+    my $column;
+    my @types = keys %$meta;
+    TYPE:
+    for my $type (@types) {
+        if($type =~ /_.*?/) {
+            next;
+            $text .= "$type = '";
+            $text .= $meta->{$type} . "'\n";
+            next;
+        }
+        my @items = $meta->find($type);
+        if(scalar (@items) == 0) {
+            $text .= "$type has no entries\n";
+            next;
+        }
+        
+        my $q = 0;
+        for my $i (@items) {
+            my @keys = keys %$i;
+            $text .= '%META:' . "$type\[$q]{";
+            $q += 1;
+            my $ktext = '';
+            for my $k (sort @keys) {
+                if($k eq 'name') {
+                    $text .= "$k='$i->{$k}' ";
+                }
+                else {
+                    $ktext .= "$k='$i->{$k}' ";
+                }
+            }
+            $text .= "$ktext}\n";
+        }
+    }
+    $text .= "\n\n";
+   
+    return $text;
+}
+
+sub _restTEST {
+
+    $rmeta = Foswiki::Meta->new($session);
+
+    print "===Top Level only=============================\n";
+    for my $c (1..1) {
+        my $witer = $versatile->eachWeb(undef);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+        print "===Top Level All=============================\n";
+        $witer = $versatile->eachWeb(undef, 1);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+        print "===Web9 Subs Only============================\n";
+        $rmeta = Foswiki::Meta->new($session,"Web9");
+        $witer = $versatile->eachWeb($rmeta);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+        print "===Web9 All==================================\n";
+        $rmeta = Foswiki::Meta->new($session,"Web9");
+        $witer = $versatile->eachWeb($rmeta,1);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+        print "===Web9 Subj Only============================\n";
+        $rmeta = Foswiki::Meta->new($session,"Web9/Subj");
+        $witer = $versatile->eachWeb($rmeta);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+        print "===Web9 Subj All=============================\n";
+        $rmeta = Foswiki::Meta->new($session,"Web9/Subj");
+        $witer = $versatile->eachWeb($rmeta,1);
+        while($witer->hasNext()) {
+            my $web = $witer->next();
+            print "WEB = '$web'\n";
+        }    
+    }
+    my $tMeta = Foswiki::Meta->new($session, 'Main', 'AdminGroup');
+    my $ti = $versatile->_topicInfo($tMeta->web, $tMeta->topic, 0);
+    $ti->{reprev} = '' if !$ti->{reprev};
+    my @TI = %{$ti};
+    print "@TI\n";
+    
+    $versatile->readTopic($tMeta, 0);
+    print "" . stringMeta($tMeta) . "\n";
+    
+    my $mainWeb = Foswiki::Meta->new($session, 'System');
+    my $tWeb = [gettimeofday];
+    my $tIter = $versatile->eachTopic($mainWeb);
+    my $iWeb = tv_interval($tWeb, [gettimeofday]);
+    my $cWeb = 0;
+    while($tIter->hasNext()) {
+        my $t = $tIter->next();
+        $cWeb++;
+        print "System.$t\n";
+    }
+    print "eachTopic took $iWeb s over $cWeb topics\n";
+
+    $tWeb = [gettimeofday];
+    $tIter = $versatile->eachTopic($mainWeb);
+    $iWeb = tv_interval($tWeb, [gettimeofday]);
+    $cWeb = 0;
+    while($tIter->hasNext()) {
+        my $t = $tIter->next();
+        $cWeb++;
+    }
+    print "eachTopic took $iWeb s over $cWeb topics\n";
+}
+
+sub stringMeta {
+    my ($rmeta) = @_;
+    my $text = '';
+   
+    $text .= "--------------------------------------------\n";
+    $text .= $rmeta->{_text} if $rmeta->{_text};
+    $text .= "\n--------------------------------------------\n";
+    my $column;
+    my @types = keys %$rmeta;
+    TYPE:
+    for my $type (@types) {
+        next if ref($rmeta->{$type}) ne 'ARRAY';
+
+        my @items = $rmeta->find($type);
+        if(scalar (@items) == 0) {
+            $text .= "$type has no entries\n";
+            next;
+        }
+
+        my $q = 0;
+        for my $i (@items) {
+            my @keys = keys %$i;
+            $text .= '%META:' . "$type\[$q]{";
+            $q += 1;
+            my $ktext = '';
+            for my $k (sort @keys) {
+                if($k eq 'name') {
+                    $text .= "$k='$i->{$k}' ";
+                }
+                else {
+                    $ktext .= "$k='$i->{$k}' ";
+                }
+            }
+            $text .= "$ktext}\n";
+        }
+    }
+    $text .= "\n--EOF------------------------------------------\n";
+    return "$text\n";
+}   
+
+
+sub testStoreReadEnMasse {
+    my ($session, $storeName, $store, $w) = @_;
+    return if !$store->can('readTopicsEnMasse');
+
+    print "Testing $storeName + enMasse \n=========================\n";
+
+    my $webObject = Foswiki::Meta->new($session, $w);
+    my @topics = $store->eachTopic($webObject)->all;
+    my $topics = scalar @topics;
+    
+    my $tRead = [ gettimeofday ];
+    my @metaList;
+    for my $t (@topics) {
+        my $meta = Foswiki::Meta->new($session, $w, $t);
+        push @metaList, $meta;
+    }
+    my $iRead = tv_interval( $tRead, [ gettimeofday ]);
+    
+    print "Build metaList took $iRead s for $topics topics\n";
+    
+    for my $q (1..5) {
+        $tRead = [ gettimeofday ];
+        $store->readTopicsEnMasse(\@metaList);
+        $iRead = tv_interval( $tRead, [ gettimeofday ]);
+        print "Read enMasse took $iRead s for $topics topics\n";
+    }
+}

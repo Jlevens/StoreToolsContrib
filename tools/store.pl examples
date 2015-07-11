@@ -1,0 +1,5 @@
+perl store.pl -- Copy -from RcsLite -create -web Main,Main4,System,Sandbox -- VersaPlain
+perl store.pl -- Copy -source RcsLite -create -web Main,Main4,System,Sandbox -- VersaPlain
+perl store.pl -- Copy -source RcsLite -create -web Main -web Main4 -web System -web Sandbox -- VersaPlain
+perl store.pl -- Copy -source RcsLite -create -web Main -web Main4 -web System -web Sandbox -- VersaPlain -- PlainFile
+perl store.pl VersaPlain -- Copy -source RcsLite -create -w Main -w Main4 -w System -w Sandbox -w TestCases
